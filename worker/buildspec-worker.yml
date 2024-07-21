@@ -1,0 +1,25 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - IMAGE_TAG=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/voting-app/worker:$CODEBUILD_BUILD_NUMBER
+      - LATEST_TAG=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/voting-app/worker:latest
+      - docker build -t $IMAGE_TAG -t $LATEST_TAG .
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $IMAGE_TAG
+      - docker push $LATEST_TAG
+      - echo Updating Kubernetes deployment file...
+      - sed -i "s|IMAGE_TAG|$LATEST_TAG|g" ../k8s-specifications/worker-deployment.yaml
+artifacts:
+  files:
+    - ../k8s-specifications/worker-deployment.yaml
