@@ -23,4 +23,4 @@ phases:
       - sed -i "s|IMAGE_TAG|$LATEST_TAG|g" k8s-specifications/worker-deployment.yaml
 artifacts:
   files:
-    - k8s-specifications/worker-deployment.yaml
+    - ../k8s-specifications/worker-deployment.yaml
