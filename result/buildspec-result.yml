@@ -20,7 +20,7 @@ phases:
       - docker push $IMAGE_TAG
       - docker push $LATEST_TAG
       - echo Updating Kubernetes deployment file...
-      - sed -i "s|IMAGE_TAG|$LATEST_TAG|g" ../k8s-specifications/result-deployment.yaml
+      - sed -i "s|IMAGE_TAG|$LATEST_TAG|g" k8s-specifications/result-deployment.yaml
 artifacts:
   files:
-    - ../k8s-specifications/result-deployment.yaml
+    - k8s-specifications/result-deployment.yaml
