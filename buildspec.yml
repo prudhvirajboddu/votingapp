@@ -1,0 +1,58 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_REPO_URI: 696907150129.dkr.ecr.us-west-2.amazonaws.com/voting-app
+    AWS_ACCOUNT_ID: 696907150129
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.us-west-2.amazonaws.com
+
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker images...
+      - docker build -t $ECR_REPO_URI/result:latest ./result
+      - docker build -t $ECR_REPO_URI/vote:latest ./vote
+      - docker build -t $ECR_REPO_URI/worker:latest ./worker
+      - echo Tagging the Docker images...
+      - export TAG=$(date +%Y%m%d%H%M%S)
+      - docker tag $ECR_REPO_URI/result:latest $ECR_REPO_URI/result:$TAG
+      - docker tag $ECR_REPO_URI/vote:latest $ECR_REPO_URI/vote:$TAG
+      - docker tag $ECR_REPO_URI/worker:latest $ECR_REPO_URI/worker:$TAG
+
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker images...
+      - docker push $ECR_REPO_URI/result:latest
+      - docker push $ECR_REPO_URI/result:$TAG
+      - docker push $ECR_REPO_URI/vote:latest
+      - docker push $ECR_REPO_URI/vote:$TAG
+      - docker push $ECR_REPO_URI/worker:latest
+      - docker push $ECR_REPO_URI/worker:$TAG
+      - echo Updating Kubernetes YAML files...
+      - |
+        cat << 'EOF' > update_k8s_yaml.sh
+        #!/bin/bash
+        ECR_REPO_URI=$ECR_REPO_URI
+        NEW_TAG=$TAG
+
+        # Update result-deployment.yaml
+        sed -i "s|IMAGE_TAG|${ECR_REPO_URI}/result:${NEW_TAG}|g" k8s-specifications/result-deployment.yaml
+
+        # Update vote-deployment.yaml
+        sed -i "s|IMAGE_TAG|${ECR_REPO_URI}/vote:${NEW_TAG}|g" k8s-specifications/vote-deployment.yaml
+
+        # Update worker-deployment.yaml
+        sed -i "s|IMAGE_TAG|${ECR_REPO_URI}/worker:${NEW_TAG}|g" k8s-specifications/worker-deployment.yaml
+        EOF
+      - chmod +x update_k8s_yaml.sh
+      - ./update_k8s_yaml.sh
+
+artifacts:
+  files:
+    - k8s-specifications/*
