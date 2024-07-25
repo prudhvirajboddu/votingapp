@@ -6,8 +6,8 @@ import random
 import json
 import logging
 
-option_a = os.getenv('OPTION_A', "Democratic")
-option_b = os.getenv('OPTION_B', "Republican")
+option_a = os.getenv('OPTION_A', "Cats")
+option_b = os.getenv('OPTION_B', "Dogs")
 hostname = socket.gethostname()
 
 app = Flask(__name__)
@@ -32,7 +32,7 @@ def hello():
     if request.method == 'POST':
         redis = get_redis()
         vote = request.form['vote']
-        app.logger.info('Received the vote for %s', vote)
+        app.logger.info('Received vote for %s', vote)
         data = json.dumps({'voter_id': voter_id, 'vote': vote})
         redis.rpush('votes', data)
 
